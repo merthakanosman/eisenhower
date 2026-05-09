@@ -1,65 +1,723 @@
-import Image from "next/image";
+"use client";
+
+import {
+  CSSProperties,
+  FormEvent,
+  PointerEvent,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+type Task = {
+  id: string;
+  title: string;
+  zone: ZoneId;
+  completed: boolean;
+};
+
+type ZoneId = "inbox" | "do" | "schedule" | "delegate" | "delete";
+
+const initialTasks: Task[] = [];
+
+const matrixZones: { id: Exclude<ZoneId, "inbox">; title: string; tone: string }[] = [
+  {
+    id: "do",
+    title: "Acil ve Onemli",
+    tone: "border-rose-200/80 bg-rose-100/90",
+  },
+  {
+    id: "schedule",
+    title: "Onemli, Acil Degil",
+    tone: "border-sky-200/80 bg-sky-100/90",
+  },
+  {
+    id: "delegate",
+    title: "Acil, Onemli Degil",
+    tone: "border-violet-200/80 bg-violet-100/90",
+  },
+  {
+    id: "delete",
+    title: "Acil Degil, Onemli Degil",
+    tone: "border-lime-200/80 bg-lime-100/90",
+  },
+];
+
+type CloudShape = {
+  position: { x: number; y: number };
+  velocity: { x: number; y: number };
+  width: number;
+  height: number;
+  radius: string;
+  color: string;
+};
 
 export default function Home() {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [showListMatrix, setShowListMatrix] = useState(false);
+  const matrixTasks = tasks.filter((task) => task.zone !== "inbox");
+  const showMatrix = draggingTaskId !== null || showListMatrix;
+
+  function addTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const cleanTitle = taskTitle.trim();
+    if (!cleanTitle) {
+      return;
+    }
+
+    setTasks((currentTasks) => [
+      {
+        id: crypto.randomUUID(),
+        title: cleanTitle,
+        zone: "inbox",
+        completed: false,
+      },
+      ...currentTasks,
+    ]);
+    setTaskTitle("");
+  }
+
+  function moveTaskToZone(taskId: string, zone: ZoneId) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, zone } : task,
+      ),
+    );
+  }
+
+  function dropCloudInZone(taskId: string, zone: ZoneId) {
+    moveTaskToZone(taskId, zone);
+    setShowListMatrix(false);
+  }
+
+  function deleteTask(taskId: string) {
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== taskId),
+    );
+  }
+
+  function renameTask(taskId: string, title: string) {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      return;
+    }
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, title: cleanTitle } : task,
+      ),
+    );
+  }
+
+  function toggleTaskCompleted(taskId: string) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task,
+      ),
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#eef3f8] px-4 py-6 text-zinc-950 sm:px-6 lg:px-10">
+      {showMatrix ? (
+        <MatrixTargets
+          tasks={matrixTasks}
+          showCloseButton={showListMatrix}
+          onClose={() => setShowListMatrix(false)}
+          onDeleteTask={deleteTask}
+          onRenameTask={renameTask}
+          onMoveTask={moveTaskToZone}
+          onToggleCompleted={toggleTaskCompleted}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      ) : null}
+
+      {tasks.filter((task) => task.zone === "inbox").map((task, index) => (
+        <Cloud
+          key={task.id}
+          task={task}
+          index={index}
+          onDragStart={setDraggingTaskId}
+          onDragEnd={() => setDraggingTaskId(null)}
+          onDropInZone={dropCloudInZone}
+        />
+      ))}
+
+      <section className="relative z-10 w-full max-w-2xl">
+        <form
+          onSubmit={addTask}
+          className="flex flex-col gap-3 rounded-lg border border-white/80 bg-white/85 p-3 shadow-xl shadow-slate-300/30 backdrop-blur-md sm:flex-row"
+        >
+          <label className="sr-only" htmlFor="task">
+            Gorev
+          </label>
+          <input
+            id="task"
+            value={taskTitle}
+            onChange={(event) => setTaskTitle(event.target.value)}
+            placeholder="Yeni gorev ekle..."
+            className="min-h-12 flex-1 rounded-md border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-sky-500 focus:bg-white"
+          />
+          <button
+            type="submit"
+            className="min-h-12 rounded-md bg-sky-600 px-6 text-sm font-semibold text-white transition hover:bg-sky-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Ekle
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowListMatrix((isVisible) => !isVisible)}
+            className="min-h-12 rounded-md border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-sky-50"
           >
-            Documentation
-          </a>
+            List
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function MatrixTargets({
+  tasks,
+  showCloseButton,
+  onClose,
+  onDeleteTask,
+  onRenameTask,
+  onMoveTask,
+  onToggleCompleted,
+}: {
+  tasks: Task[];
+  showCloseButton: boolean;
+  onClose: () => void;
+  onDeleteTask: (taskId: string) => void;
+  onRenameTask: (taskId: string, title: string) => void;
+  onMoveTask: (taskId: string, zone: ZoneId) => void;
+  onToggleCompleted: (taskId: string) => void;
+}) {
+  return (
+    <section className="pointer-events-none fixed inset-0 z-30 grid grid-cols-2 grid-rows-2 gap-6 p-6 sm:gap-8 sm:p-8">
+      {showCloseButton ? (
+        <button
+          type="button"
+          aria-label="Listeyi kapat"
+          onClick={onClose}
+          className="pointer-events-auto fixed right-4 top-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200 bg-zinc-950 text-2xl font-semibold leading-none text-white shadow-2xl transition hover:bg-zinc-800 sm:right-6 sm:top-6"
+        >
+          x
+        </button>
+      ) : null}
+
+      {matrixZones.map((zone) => {
+        const zoneTasks = tasks.filter((task) => task.zone === zone.id);
+
+        return (
+          <div
+            key={zone.id}
+            data-matrix-zone={zone.id}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              const taskId = event.dataTransfer.getData("text/plain");
+              if (taskId) {
+                onMoveTask(taskId, zone.id);
+              }
+            }}
+            className={`pointer-events-auto min-h-0 rounded-lg border p-4 shadow-2xl backdrop-blur-md ${zone.tone}`}
+          >
+            <div className="mb-3 text-sm font-semibold leading-5 sm:text-base">
+              {zone.title}
+            </div>
+            <div className="flex max-h-[calc(50vh-96px)] flex-col gap-2 overflow-y-auto">
+              {zoneTasks.map((task) => (
+                <MatrixTaskCard
+                  key={task.id}
+                  task={task}
+                  onDelete={onDeleteTask}
+                  onRename={onRenameTask}
+                  onToggleCompleted={onToggleCompleted}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function MatrixTaskCard({
+  task,
+  onDelete,
+  onRename,
+  onToggleCompleted,
+}: {
+  task: Task;
+  onDelete: (taskId: string) => void;
+  onRename: (taskId: string, title: string) => void;
+  onToggleCompleted: (taskId: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onRename(task.id, editTitle);
+    setIsEditing(false);
+  }
+
+  function cancelEdit() {
+    setEditTitle(task.title);
+    setIsEditing(false);
+  }
+
+  return (
+    <div
+      ref={cardRef}
+      className={`rounded-md border px-3 py-2 text-sm font-semibold leading-5 shadow-sm ${
+        isConfirmingDelete
+          ? "border-red-200 bg-red-50"
+          : "border-white/70 bg-white/85"
+      }`}
+    >
+      {isEditing ? (
+        <form onSubmit={saveEdit} className="flex gap-2">
+          <label className="sr-only" htmlFor={`edit-${task.id}`}>
+            Gorev duzenle
+          </label>
+          <input
+            id={`edit-${task.id}`}
+            value={editTitle}
+            onChange={(event) => setEditTitle(event.target.value)}
+            className="min-h-9 min-w-0 flex-1 rounded-md border border-zinc-200 bg-white px-2 text-sm outline-none focus:border-zinc-900"
+          />
+          <IconButton label="Kaydet" type="submit">
+            <CheckIcon />
+          </IconButton>
+          <IconButton label="Iptal" onClick={cancelEdit}>
+            <CloseIcon />
+          </IconButton>
+        </form>
+      ) : (
+        <div className="flex min-w-0 items-center gap-2">
+          {isConfirmingDelete ? (
+            <div className="min-w-0 flex-1 truncate text-red-700">
+              Siliyorum?
+            </div>
+          ) : (
+            <button
+              type="button"
+              aria-label={
+                task.completed ? "Tamamlanmadi olarak isaretle" : "Tamamlandi"
+              }
+              onClick={() => onToggleCompleted(task.id)}
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition hover:bg-white/70"
+            >
+              <span
+                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                  task.completed ? "bg-emerald-500" : "bg-zinc-300"
+                }`}
+              />
+
+              <span
+                className={`min-w-0 flex-1 truncate ${
+                  task.completed ? "text-zinc-400 line-through" : "text-zinc-900"
+                }`}
+              >
+                {task.title}
+              </span>
+            </button>
+          )}
+
+          <div className="flex shrink-0 gap-1">
+            {isConfirmingDelete ? (
+              <>
+                <IconButton label="Sil" onClick={() => onDelete(task.id)}>
+                  <CheckIcon />
+                </IconButton>
+                <IconButton
+                  label="Iptal"
+                  onClick={() => setIsConfirmingDelete(false)}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </>
+            ) : (
+              <>
+                <IconButton
+                  label="Duzenle"
+                  onClick={() => {
+                    setEditTitle(task.title);
+                    setIsEditing(true);
+                  }}
+                >
+                  <EditIcon />
+                </IconButton>
+                <button
+                  type="button"
+                  draggable
+                  aria-label="Tasi"
+                  title="Tasi"
+                  onClick={(event) => event.stopPropagation()}
+                  onDragStart={(event) => {
+                    event.stopPropagation();
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", task.id);
+                    if (cardRef.current) {
+                      event.dataTransfer.setDragImage(cardRef.current, 24, 20);
+                    }
+                  }}
+                  className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 active:cursor-grabbing"
+                >
+                  <MoveIcon />
+                </button>
+                <IconButton
+                  label="Sil"
+                  onClick={() => setIsConfirmingDelete(true)}
+                >
+                  <TrashIcon />
+                </IconButton>
+              </>
+            )}
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
+}
+
+function IconButton({
+  label,
+  children,
+  type = "button",
+  onClick,
+}: {
+  label: string;
+  children: ReactNode;
+  type?: "button" | "submit";
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type={type}
+      aria-label={label}
+      title={label}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.();
+      }}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950"
+    >
+      {children}
+    </button>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2.5"
+    >
+      <path d="m5 12 4 4 10-10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2.5"
+    >
+      <path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M3 6h18M8 6V4h8v2M7 6l1 14h8l1-14"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MoveIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        d="M12 3v18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12h18M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function Cloud({
+  task,
+  index,
+  onDragStart,
+  onDragEnd,
+  onDropInZone,
+}: {
+  task: Task;
+  index: number;
+  onDragStart: (taskId: string) => void;
+  onDragEnd: () => void;
+  onDropInZone: (taskId: string, zone: ZoneId) => void;
+}) {
+  const shape = useMemo(() => createCloudShape(task.id, index), [task.id, index]);
+  const cloudRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const positionRef = useRef(shape.position);
+  const velocityRef = useRef(shape.velocity);
+  const dragRef = useRef({
+    active: false,
+    offsetX: 0,
+    offsetY: 0,
+    lastX: shape.position.x,
+    lastY: shape.position.y,
+    lastTime: 0,
+  });
+  const [position, setPosition] = useState(shape.position);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const cloudStyle: CSSProperties = {
+    width: shape.width,
+    height: shape.height,
+    borderRadius: shape.radius,
+    background: shape.color,
+    zIndex: isDragging ? 50 : 20,
+    transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+  };
+
+  useEffect(() => {
+    function animate() {
+      const cloud = cloudRef.current;
+
+      if (cloud && !dragRef.current.active) {
+        const width = cloud.offsetWidth;
+        const height = cloud.offsetHeight;
+        const maxX = Math.max(0, window.innerWidth - width);
+        const maxY = Math.max(0, window.innerHeight - height);
+        const nextPosition = {
+          x: positionRef.current.x + velocityRef.current.x,
+          y: positionRef.current.y + velocityRef.current.y,
+        };
+
+        if (nextPosition.x <= 0 || nextPosition.x >= maxX) {
+          velocityRef.current.x *= -1;
+          nextPosition.x = Math.min(Math.max(nextPosition.x, 0), maxX);
+        }
+
+        if (nextPosition.y <= 0 || nextPosition.y >= maxY) {
+          velocityRef.current.y *= -1;
+          nextPosition.y = Math.min(Math.max(nextPosition.y, 0), maxY);
+        }
+
+        positionRef.current = nextPosition;
+        setPosition(nextPosition);
+      }
+
+      animationRef.current = requestAnimationFrame(animate);
+    }
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  function moveCloud(event: PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current.active || !cloudRef.current) {
+      return;
+    }
+
+    const width = cloudRef.current.offsetWidth;
+    const height = cloudRef.current.offsetHeight;
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    const nextPosition = {
+      x: Math.min(Math.max(event.clientX - dragRef.current.offsetX, 0), maxX),
+      y: Math.min(Math.max(event.clientY - dragRef.current.offsetY, 0), maxY),
+    };
+    const now = performance.now();
+    const elapsed = Math.max(16, now - dragRef.current.lastTime);
+
+    velocityRef.current = {
+      x: ((nextPosition.x - dragRef.current.lastX) / elapsed) * 16,
+      y: ((nextPosition.y - dragRef.current.lastY) / elapsed) * 16,
+    };
+    dragRef.current.lastX = nextPosition.x;
+    dragRef.current.lastY = nextPosition.y;
+    dragRef.current.lastTime = now;
+    positionRef.current = nextPosition;
+    setPosition(nextPosition);
+  }
+
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    const cloud = cloudRef.current;
+    if (!cloud) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onDragStart(task.id);
+    setIsDragging(true);
+    dragRef.current = {
+      active: true,
+      offsetX: event.clientX - positionRef.current.x,
+      offsetY: event.clientY - positionRef.current.y,
+      lastX: positionRef.current.x,
+      lastY: positionRef.current.y,
+      lastTime: performance.now(),
+    };
+  }
+
+  function stopDrag(event: PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current.active) {
+      return;
+    }
+
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    dragRef.current.active = false;
+    setIsDragging(false);
+
+    const droppedZone = findDropZone(event.clientX, event.clientY);
+    if (droppedZone) {
+      onDropInZone(task.id, droppedZone);
+      onDragEnd();
+      return;
+    }
+
+    if (Math.abs(velocityRef.current.x) < 0.4) {
+      velocityRef.current.x = velocityRef.current.x < 0 ? -1.6 : 1.6;
+    }
+
+    if (Math.abs(velocityRef.current.y) < 0.4) {
+      velocityRef.current.y = velocityRef.current.y < 0 ? -1.2 : 1.2;
+    }
+
+    onDragEnd();
+  }
+
+  return (
+    <div
+      ref={cloudRef}
+      role="presentation"
+      onPointerDown={startDrag}
+      onPointerMove={moveCloud}
+      onPointerUp={stopDrag}
+      onPointerCancel={stopDrag}
+      className="cloud-shape"
+      style={cloudStyle}
+    >
+      {task.title}
+    </div>
+  );
+}
+
+function findDropZone(clientX: number, clientY: number): ZoneId | null {
+  const zoneElement = document
+    .elementsFromPoint(clientX, clientY)
+    .find((element) => element instanceof HTMLElement && element.dataset.matrixZone);
+
+  if (!(zoneElement instanceof HTMLElement)) {
+    return null;
+  }
+
+  return (zoneElement.dataset.matrixZone as ZoneId | undefined) ?? null;
+}
+
+function createCloudShape(seed: string, index: number): CloudShape {
+  const hash = hashString(seed);
+  const cloudColors = ["#ffffff", "#f8fbff", "#fff7ed", "#f0fdfa", "#fdf2f8"];
+  const width = 190 + (hash % 88);
+  const height = 96 + ((hash >> 3) % 42);
+  const directionX = hash % 2 === 0 ? 1 : -1;
+  const directionY = hash % 3 === 0 ? 1 : -1;
+
+  return {
+    position: {
+      x: 40 + ((hash + index * 83) % 520),
+      y: 40 + (((hash >> 4) + index * 67) % 340),
+    },
+    velocity: {
+      x: directionX * (1.2 + ((hash >> 6) % 16) / 10),
+      y: directionY * (1 + ((hash >> 10) % 14) / 10),
+    },
+    width,
+    height,
+    radius: `${54 + (hash % 10)}% ${46 + ((hash >> 3) % 12)}% ${
+      58 + ((hash >> 6) % 10)
+    }% ${48 + ((hash >> 9) % 12)}% / ${62 + ((hash >> 12) % 10)}% ${
+      48 + ((hash >> 15) % 12)
+    }% ${64 + ((hash >> 18) % 9)}% ${46 + ((hash >> 21) % 13)}%`,
+    color: cloudColors[hash % cloudColors.length],
+  };
+}
+
+function hashString(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
 }
