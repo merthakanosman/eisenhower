@@ -123,7 +123,7 @@ export default function Home() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#eef3f8] px-4 py-6 text-zinc-950 sm:px-6 lg:px-10">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#eef3f8] px-3 py-4 text-slate-950 sm:px-6 sm:py-6 lg:px-10">
       {showMatrix ? (
         <MatrixTargets
           tasks={matrixTasks}
@@ -147,10 +147,10 @@ export default function Home() {
         />
       ))}
 
-      <section className="relative z-10 w-full max-w-2xl">
+      <section className="relative z-10 w-full max-w-[min(42rem,calc(100vw-1.5rem))] sm:max-w-2xl">
         <form
           onSubmit={addTask}
-          className="flex flex-col gap-3 rounded-lg border border-white/80 bg-white/85 p-3 shadow-xl shadow-slate-300/30 backdrop-blur-md sm:flex-row"
+          className="flex flex-col gap-2 rounded-lg border border-white/80 bg-white/90 p-2.5 shadow-xl shadow-slate-300/30 backdrop-blur-md sm:flex-row sm:gap-3 sm:p-3"
         >
           <label className="sr-only" htmlFor="task">
             Gorev
@@ -160,18 +160,18 @@ export default function Home() {
             value={taskTitle}
             onChange={(event) => setTaskTitle(event.target.value)}
             placeholder="Yeni gorev ekle..."
-            className="min-h-12 flex-1 rounded-md border border-slate-200 bg-slate-50 px-4 text-base outline-none transition focus:border-sky-500 focus:bg-white"
+            className="min-h-11 flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:bg-white sm:min-h-12 sm:px-4"
           />
           <button
             type="submit"
-            className="min-h-12 rounded-md bg-sky-600 px-6 text-sm font-semibold text-white transition hover:bg-sky-700"
+            className="min-h-11 rounded-md bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 sm:min-h-12 sm:px-6"
           >
             Ekle
           </button>
           <button
             type="button"
             onClick={() => setShowListMatrix((isVisible) => !isVisible)}
-            className="min-h-12 rounded-md border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-sky-50"
+            className="min-h-11 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-sky-50 sm:min-h-12 sm:px-6"
           >
             List
           </button>
@@ -199,13 +199,13 @@ function MatrixTargets({
   onToggleCompleted: (taskId: string) => void;
 }) {
   return (
-    <section className="pointer-events-none fixed inset-0 z-30 grid grid-cols-2 grid-rows-2 gap-6 p-6 sm:gap-8 sm:p-8">
+    <section className="pointer-events-none fixed inset-0 z-30 grid grid-cols-2 grid-rows-2 gap-2 p-2 sm:gap-4 sm:p-4 md:gap-6 md:p-6 xl:gap-8 xl:p-8">
       {showCloseButton ? (
         <button
           type="button"
           aria-label="Listeyi kapat"
           onClick={onClose}
-          className="pointer-events-auto fixed right-4 top-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200 bg-zinc-950 text-2xl font-semibold leading-none text-white shadow-2xl transition hover:bg-zinc-800 sm:right-6 sm:top-6"
+          className="pointer-events-auto fixed right-3 top-3 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-950 text-xl font-semibold leading-none text-white shadow-2xl transition hover:bg-slate-800 sm:right-5 sm:top-5 sm:h-12 sm:w-12 sm:text-2xl"
         >
           x
         </button>
@@ -225,12 +225,12 @@ function MatrixTargets({
                 onMoveTask(taskId, zone.id);
               }
             }}
-            className={`pointer-events-auto min-h-0 rounded-lg border p-4 shadow-2xl backdrop-blur-md ${zone.tone}`}
+            className={`pointer-events-auto min-h-0 rounded-lg border p-2.5 shadow-2xl shadow-slate-500/20 backdrop-blur-md sm:p-3 md:p-4 ${zone.tone}`}
           >
-            <div className="mb-3 text-sm font-semibold leading-5 sm:text-base">
+            <div className="mb-2 text-xs font-bold leading-4 text-slate-800 sm:mb-3 sm:text-sm md:text-base">
               {zone.title}
             </div>
-            <div className="flex max-h-[calc(50vh-96px)] flex-col gap-2 overflow-y-auto">
+            <div className="flex max-h-[calc(50dvh-70px)] flex-col gap-1.5 overflow-y-auto pr-0.5 sm:max-h-[calc(50dvh-86px)] sm:gap-2">
               {zoneTasks.map((task) => (
                 <MatrixTaskCard
                   key={task.id}
@@ -278,14 +278,14 @@ function MatrixTaskCard({
   return (
     <div
       ref={cardRef}
-      className={`rounded-md border px-3 py-2 text-sm font-semibold leading-5 shadow-sm ${
+      className={`rounded-md border px-2 py-1.5 text-xs font-semibold leading-5 shadow-sm sm:px-3 sm:py-2 sm:text-sm ${
         isConfirmingDelete
           ? "border-red-200 bg-red-50"
           : "border-white/70 bg-white/85"
       }`}
     >
       {isEditing ? (
-        <form onSubmit={saveEdit} className="flex gap-2">
+        <form onSubmit={saveEdit} className="flex gap-1.5 sm:gap-2">
           <label className="sr-only" htmlFor={`edit-${task.id}`}>
             Gorev duzenle
           </label>
@@ -293,7 +293,7 @@ function MatrixTaskCard({
             id={`edit-${task.id}`}
             value={editTitle}
             onChange={(event) => setEditTitle(event.target.value)}
-            className="min-h-9 min-w-0 flex-1 rounded-md border border-zinc-200 bg-white px-2 text-sm outline-none focus:border-zinc-900"
+            className="min-h-8 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-sky-500 sm:min-h-9 sm:text-sm"
           />
           <IconButton label="Kaydet" type="submit">
             <CheckIcon />
@@ -303,7 +303,7 @@ function MatrixTaskCard({
           </IconButton>
         </form>
       ) : (
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           {isConfirmingDelete ? (
             <div className="min-w-0 flex-1 truncate text-red-700">
               Siliyorum?
@@ -315,10 +315,10 @@ function MatrixTaskCard({
                 task.completed ? "Tamamlanmadi olarak isaretle" : "Tamamlandi"
               }
               onClick={() => onToggleCompleted(task.id)}
-              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition hover:bg-white/70"
+              className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-1 text-left transition hover:bg-white/70 sm:gap-2"
             >
               <span
-                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                className={`h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5 ${
                   task.completed ? "bg-emerald-500" : "bg-zinc-300"
                 }`}
               />
@@ -333,7 +333,7 @@ function MatrixTaskCard({
             </button>
           )}
 
-          <div className="flex shrink-0 gap-1">
+          <div className="flex shrink-0 gap-0.5 sm:gap-1">
             {isConfirmingDelete ? (
               <>
                 <IconButton label="Sil" onClick={() => onDelete(task.id)}>
@@ -371,7 +371,7 @@ function MatrixTaskCard({
                       event.dataTransfer.setDragImage(cardRef.current, 24, 20);
                     }
                   }}
-                  className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 active:cursor-grabbing"
+                  className="flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 active:cursor-grabbing sm:h-8 sm:w-8"
                 >
                   <MoveIcon />
                 </button>
@@ -410,7 +410,7 @@ function IconButton({
         event.stopPropagation();
         onClick?.();
       }}
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 sm:h-8 sm:w-8"
     >
       {children}
     </button>
@@ -534,8 +534,8 @@ function Cloud({
   const [isDragging, setIsDragging] = useState(false);
 
   const cloudStyle: CSSProperties = {
-    width: shape.width,
-    height: shape.height,
+    width: `min(${shape.width}px, calc(100vw - 32px))`,
+    height: `clamp(78px, 22vw, ${shape.height}px)`,
     borderRadius: shape.radius,
     background: shape.color,
     zIndex: isDragging ? 50 : 20,
@@ -686,8 +686,8 @@ function findDropZone(clientX: number, clientY: number): ZoneId | null {
 function createCloudShape(seed: string, index: number): CloudShape {
   const hash = hashString(seed);
   const cloudColors = ["#ffffff", "#f8fbff", "#fff7ed", "#f0fdfa", "#fdf2f8"];
-  const width = 190 + (hash % 88);
-  const height = 96 + ((hash >> 3) % 42);
+  const width = 180 + (hash % 96);
+  const height = 88 + ((hash >> 3) % 48);
   const directionX = hash % 2 === 0 ? 1 : -1;
   const directionY = hash % 3 === 0 ? 1 : -1;
 
