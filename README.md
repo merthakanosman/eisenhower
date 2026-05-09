@@ -44,6 +44,29 @@ http://localhost:3000
 npm run build
 ```
 
+## Iframe Olarak Kullanma
+
+GitHub Pages acikken uygulama su adresten yayinlanir:
+
+```text
+https://merthakanosman.github.io/eisenhower/
+```
+
+Baska bir projede su sekilde gom:
+
+```html
+<iframe
+  src="https://merthakanosman.github.io/eisenhower/embed/"
+  title="Eisenhower Cloud Todo"
+  style="width: 100%; height: 720px; border: 0;"
+  loading="lazy"
+></iframe>
+```
+
+Bu proje GitHub Pages icin statik export uretir. Build sonrasi `out/index.html` ve `out/embed/index.html` dosyalari olusur.
+
+GitHub repo ayarlarinda `Settings > Pages > Source` degerini `GitHub Actions` yap.
+
 ## Lint
 
 ```bash
